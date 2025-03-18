@@ -1,8 +1,6 @@
 package Multithreaded;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -11,41 +9,33 @@ import java.util.function.Consumer;
 public class Server {
 
 
-    public Consumer<Socket> getConsumer(){
+    public Consumer<Socket> getConsumer() {
         return (clientSocket) -> {
-            try {
-                PrintWriter toClient = new PrintWriter(clientSocket.getOutputStream(), true);
-                BufferedReader fromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                toClient.println("HTTP/1.1 200 OK");
-                fromClient.readLine();
+            try (PrintWriter toClient = new PrintWriter(clientSocket.getOutputStream(), true)){
+                // Send a complete HTTP response
+                toClient.println("Hello from server " + clientSocket.getInetAddress());
+                // Close resources
                 toClient.close();
-                fromClient.close();
                 clientSocket.close();
+                System.out.println("Connection is Closed !");
             } catch (IOException e) {
                 e.printStackTrace();
             }
         };
     }
 
-    public void run() throws IOException {
+    public static void main(String[] args){
         int port = 8010;
         Server server = new Server();
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            serverSocket.setSoTimeout(100000);
-            do {
-                System.out.println("waiting for client");
-                Socket acceptedConnection = serverSocket.accept();
-                System.out.println("Connection accepted from " + acceptedConnection.getRemoteSocketAddress() + " on port " + acceptedConnection.getPort());
-                Thread thread = new Thread(() -> server.getConsumer().accept(acceptedConnection));
-                System.out.println("Connection closed");
-                System.exit(0);
-            } while (true);
-        }
-    }
-    public static void main(String[] args){
-        Server server = new Server();
-        try {
-            server.run();
+        try (ServerSocket serverSocket = new ServerSocket(port)){
+            serverSocket.setSoTimeout(70000);
+            System.out.println("Server is Listening on Port : " + port);
+            while (true){
+                Socket clientSocket = serverSocket.accept();
+                // Create and start a new thread for each client
+                Thread thread = new Thread(() -> server.getConsumer().accept(clientSocket));
+                thread.start();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

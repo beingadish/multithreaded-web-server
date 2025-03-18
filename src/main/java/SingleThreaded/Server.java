@@ -24,9 +24,7 @@ public class Server {
                 acceptedConnection.close();
                 toClient.close();
                 fromClient.close();
-                serverSocket.close();
                 System.out.println("Connection closed");
-                System.exit(0);
             }
     }
     public static void main(String[] args){

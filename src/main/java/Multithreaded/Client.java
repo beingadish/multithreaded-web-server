@@ -10,29 +10,43 @@ import java.net.UnknownHostException;
 
 public class Client {
 
-    public void run() throws UnknownHostException, IOException{
-        int port = 8010;
-        InetAddress address = InetAddress.getByName("localhost");
-        Socket socket = new Socket(address, port);
-        socket.setSoTimeout(100000);
-        PrintWriter toServer = new PrintWriter(socket.getOutputStream(), true);
-        BufferedReader fromServer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        toServer.println("GET / HTTP/1.1");
-        String line = fromServer.readLine();
-        System.out.println("Response from the Socket : " + line);
-        socket.close();
-        fromServer.close();
-        toServer.close();
-        System.out.println("Connection closed");
-        System.exit(0);
+    public Runnable getRunnable() throws UnknownHostException, IOException {
+        return new Runnable() {
+            @Override
+            public void run() {
+                int port = 8010;
+                try {
+                    InetAddress address = InetAddress.getByName("localhost");
+                    Socket socket = new Socket(address, port);
+                    try (
+                            PrintWriter toSocket = new PrintWriter(socket.getOutputStream(), true);
+                            BufferedReader fromSocket = new BufferedReader(new InputStreamReader(socket.getInputStream()))
+                    ) {
+                        toSocket.println("Hello from Client " + socket.getLocalSocketAddress());
+                        String line = fromSocket.readLine();
+                        System.out.println("Response from Server " + line);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    // The socket will be closed automatically when leaving the try-with-resources block
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        };
     }
 
     public static void main(String[] args){
-        try {
-            Client client = new Client();
-            client.run();
-        } catch (IOException e) {
-            e.printStackTrace();
+        Client client = new Client();
+        for(int i=0; i<100; i++){
+            try{
+                Thread thread = new Thread(client.getRunnable());
+                thread.start();
+            }catch(Exception ex){
+                return;
+            }
         }
+        return;
     }
 }
